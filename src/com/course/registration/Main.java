@@ -4,7 +4,9 @@ import com.course.registration.model.Course;
 import com.course.registration.model.Student;
 import com.course.registration.service.CourseRegistrationSystem;
 import com.course.registration.service.RegistrationResult;
+import com.course.registration.ui.CourseRegistrationFrame;
 
+import javax.swing.SwingUtilities;
 import java.util.List;
 import java.util.Scanner;
 import java.util.Set;
@@ -13,7 +15,19 @@ public class Main {
     public static void main(String[] args) {
         CourseRegistrationSystem system = new CourseRegistrationSystem();
         seedData(system);
-        runConsole(system);
+
+        if (args.length > 0 && "--console".equalsIgnoreCase(args[0])) {
+            runConsole(system);
+        } else {
+            launchGui(system);
+        }
+    }
+
+    private static void launchGui(CourseRegistrationSystem system) {
+        SwingUtilities.invokeLater(() -> {
+            CourseRegistrationFrame frame = new CourseRegistrationFrame(system);
+            frame.setVisible(true);
+        });
     }
 
     private static void runConsole(CourseRegistrationSystem system) {
