@@ -1,0 +1,138 @@
+package com.course.registration.service;
+
+import com.course.registration.model.Course;
+import com.course.registration.model.Student;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+public class CourseRegistrationSystem {
+    private final Map<String, Course> courses;
+    private final Map<String, Student> students;
+
+    public CourseRegistrationSystem() {
+        this.courses = new HashMap<>();
+        this.students = new HashMap<>();
+    }
+
+    public void addCourse(Course course) {
+        courses.put(course.getCourseId(), course);
+    }
+
+    public void addStudent(Student student) {
+        students.put(student.getStudentId(), student);
+    }
+
+    public List<Course> getAllCourses() {
+        List<Course> list = new ArrayList<>(courses.values());
+        list.sort(Comparator.comparing(Course::getCourseId));
+        return list;
+    }
+
+    public List<Student> getAllStudents() {
+        List<Student> list = new ArrayList<>(students.values());
+        list.sort(Comparator.comparing(Student::getStudentId));
+        return list;
+    }
+
+    public RegistrationResult registerStudentForCourse(String studentId, String courseId) {
+        Student student = students.get(studentId);
+        if (student == null) {
+            return RegistrationResult.failure("Student not found: " + studentId);
+        }
+
+        Course course = courses.get(courseId);
+        if (course == null) {
+            return RegistrationResult.failure("Course not found: " + courseId);
+        }
+
+        if (student.isAlreadyEnrolled(courseId)) {
+            return RegistrationResult.failure("Student is already enrolled in " + courseId);
+        }
+
+        if (!student.canTakeMoreCourses()) {
+            return RegistrationResult.failure("Student has reached max course load.");
+        }
+
+        if (!course.hasAvailableSeat()) {
+            return RegistrationResult.failure("Course is full.");
+        }
+
+        Set<String> completed = student.getCompletedCourses();
+        for (String prerequisite : course.getPrerequisites()) {
+            if (!completed.contains(prerequisite)) {
+                return RegistrationResult.failure("Missing prerequisite: " + prerequisite);
+            }
+        }
+
+        student.enrollInCourse(courseId);
+        course.enroll();
+        return RegistrationResult.success("Registration successful for " + studentId + " in " + courseId);
+    }
+
+    public RegistrationResult dropStudentFromCourse(String studentId, String courseId) {
+        Student student = students.get(studentId);
+        if (student == null) {
+            return RegistrationResult.failure("Student not found: " + studentId);
+        }
+
+        Course course = courses.get(courseId);
+        if (course == null) {
+            return RegistrationResult.failure("Course not found: " + courseId);
+        }
+
+        if (!student.isAlreadyEnrolled(courseId)) {
+            return RegistrationResult.failure("Student is not enrolled in " + courseId);
+        }
+
+        student.dropCourse(courseId);
+        course.drop();
+        return RegistrationResult.success("Dropped " + studentId + " from " + courseId);
+    }
+
+    public RegistrationResult markCourseCompleted(String studentId, String courseId) {
+        Student student = students.get(studentId);
+        if (student == null) {
+            return RegistrationResult.failure("Student not found: " + studentId);
+        }
+
+        if (!courses.containsKey(courseId)) {
+            return RegistrationResult.failure("Course not found: " + courseId);
+        }
+
+        if (!student.isAlreadyEnrolled(courseId)) {
+            return RegistrationResult.failure("Student must be currently enrolled in " + courseId + " to complete it.");
+        }
+
+        student.markCourseCompleted(courseId);
+        Course course = courses.get(courseId);
+        course.drop();
+        return RegistrationResult.success("Marked " + courseId + " as completed for " + studentId);
+    }
+
+    public List<Course> getStudentCurrentCourses(String studentId) {
+        Student student = students.get(studentId);
+        List<Course> result = new ArrayList<>();
+        if (student == null) {
+            return result;
+        }
+
+        for (String courseId : student.getCurrentCourses()) {
+            Course course = courses.get(courseId);
+            if (course != null) {
+                result.add(course);
+            }
+        }
+
+        result.sort(Comparator.comparing(Course::getCourseId));
+        return result;
+    }
+
+    public Student getStudent(String studentId) {
+        return students.get(studentId);
+    }
+}
