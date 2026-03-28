@@ -2,6 +2,7 @@ package com.course.registration.ui;
 
 import com.course.registration.model.Course;
 import com.course.registration.model.Student;
+import com.course.registration.model.User;
 import com.course.registration.service.CourseRegistrationSystem;
 import com.course.registration.service.RegistrationResult;
 
@@ -30,6 +31,7 @@ import java.util.Set;
 
 public class CourseRegistrationFrame extends JFrame {
     private final CourseRegistrationSystem system;
+    private final User currentUser;
 
     private final JComboBox<String> studentSelector;
     private final JComboBox<String> courseSelector;
@@ -40,16 +42,22 @@ public class CourseRegistrationFrame extends JFrame {
     private final JTextArea studentDetailsArea;
     private final JTextArea statusArea;
 
-    public CourseRegistrationFrame(CourseRegistrationSystem system) {
+    public CourseRegistrationFrame(CourseRegistrationSystem system, User currentUser) {
         this.system = system;
+        this.currentUser = currentUser;
 
-        setTitle("Course Registration System - Swing GUI");
+        setTitle("Course Registration System - " + currentUser.getRole() + " | User: " + currentUser.getUsername());
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1000, 650);
         setLocationRelativeTo(null);
 
         JPanel mainPanel = new JPanel(new BorderLayout(12, 12));
         mainPanel.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
+
+        JPanel headerPanel = new JPanel(new BorderLayout(10, 10));
+        JLabel userInfoLabel = new JLabel("Logged in as: " + currentUser.getUsername() + " (" + currentUser.getRole() + ")");
+        userInfoLabel.setFont(userInfoLabel.getFont().deriveFont(12f));
+        headerPanel.add(userInfoLabel, BorderLayout.WEST);
 
         JPanel topPanel = new JPanel(new GridLayout(2, 1, 8, 8));
         topPanel.add(buildSelectionPanel());
@@ -103,7 +111,11 @@ public class CourseRegistrationFrame extends JFrame {
         bottomPanel.add(wrapArea(studentDetailsArea, "Selected Student Schedule"));
         bottomPanel.add(wrapArea(statusArea, "Status"));
 
-        mainPanel.add(topPanel, BorderLayout.NORTH);
+        JPanel northPanel = new JPanel(new BorderLayout(10, 10));
+        northPanel.add(headerPanel, BorderLayout.NORTH);
+        northPanel.add(topPanel, BorderLayout.CENTER);
+
+        mainPanel.add(northPanel, BorderLayout.NORTH);
         mainPanel.add(tablesSplit, BorderLayout.CENTER);
         mainPanel.add(bottomPanel, BorderLayout.SOUTH);
 
