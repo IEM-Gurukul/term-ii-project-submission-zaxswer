@@ -41,10 +41,14 @@ public class Main {
     }
 
     private static void seedData(CourseRegistrationSystem system) {
-        system.addCourse(new Course("CS101", "Introduction to Programming", 3, Set.of()));
-        system.addCourse(new Course("CS102", "Data Structures", 3, Set.of("CS101")));
-        system.addCourse(new Course("CS201", "Database Systems", 2, Set.of("CS101")));
-        system.addCourse(new Course("CS301", "Algorithms", 2, Set.of("CS102")));
+        system.addCourse(new Course("CS101", "Introduction to Programming", 3, Set.of(),
+            "https://www.youtube.com/watch?v=8PopR3x-VMY"));
+        system.addCourse(new Course("CS102", "Data Structures", 3, Set.of("CS101"),
+            "https://www.youtube.com/watch?v=RBSGKlAvoiM"));
+        system.addCourse(new Course("CS201", "Database Systems", 2, Set.of("CS101"),
+            "https://www.youtube.com/watch?v=HXV3zeQKqGY"));
+        system.addCourse(new Course("CS301", "Algorithms", 2, Set.of("CS102"),
+            "https://www.youtube.com/watch?v=CBYHwZcbD-s"));
 
         system.addStudent(new Student("S001", "Alice", 3));
         system.addStudent(new Student("S002", "Bob", 2));

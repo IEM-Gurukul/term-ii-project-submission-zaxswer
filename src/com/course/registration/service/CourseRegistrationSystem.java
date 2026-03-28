@@ -1,5 +1,7 @@
 package com.course.registration.service;
 
+import com.learning.CourseVideoProgressTracker;
+import com.learning.StudentTopicSelectionStore;
 import com.course.registration.model.Course;
 import com.course.registration.model.Student;
 
@@ -13,10 +15,14 @@ import java.util.Set;
 public class CourseRegistrationSystem {
     private final Map<String, Course> courses;
     private final Map<String, Student> students;
+    private final CourseVideoProgressTracker videoProgressTracker;
+    private final StudentTopicSelectionStore topicSelectionStore;
 
     public CourseRegistrationSystem() {
         this.courses = new HashMap<>();
         this.students = new HashMap<>();
+        this.videoProgressTracker = new CourseVideoProgressTracker();
+        this.topicSelectionStore = new StudentTopicSelectionStore();
     }
 
     public void addCourse(Course course) {
@@ -54,6 +60,10 @@ public class CourseRegistrationSystem {
             return RegistrationResult.failure("Student is already enrolled in " + courseId);
         }
 
+        if (course.requiresVideoWatch() && !videoProgressTracker.hasWatched(studentId, courseId)) {
+            return RegistrationResult.failure("Watch the required course video before enrolling in " + courseId + ".");
+        }
+
         if (!student.canTakeMoreCourses()) {
             return RegistrationResult.failure("Student has reached max course load.");
         }
@@ -72,6 +82,66 @@ public class CourseRegistrationSystem {
         student.enrollInCourse(courseId);
         course.enroll();
         return RegistrationResult.success("Registration successful for " + studentId + " in " + courseId);
+    }
+
+    public RegistrationResult markCourseVideoWatched(String studentId, String courseId) {
+        Student student = students.get(studentId);
+        if (student == null) {
+            return RegistrationResult.failure("Student not found: " + studentId);
+        }
+
+        Course course = courses.get(courseId);
+        if (course == null) {
+            return RegistrationResult.failure("Course not found: " + courseId);
+        }
+
+        if (!course.requiresVideoWatch()) {
+            return RegistrationResult.failure("No required video is configured for " + courseId + ".");
+        }
+
+        videoProgressTracker.markWatched(studentId, courseId);
+        return RegistrationResult.success("Video marked as watched for " + studentId + " in " + courseId);
+    }
+
+    public boolean hasWatchedCourseVideo(String studentId, String courseId) {
+        Course course = courses.get(courseId);
+        if (course == null) {
+            return false;
+        }
+        if (!course.requiresVideoWatch()) {
+            return true;
+        }
+        return videoProgressTracker.hasWatched(studentId, courseId);
+    }
+
+    public String getCourseVideoUrl(String courseId) {
+        Course course = courses.get(courseId);
+        if (course == null) {
+            return null;
+        }
+        return course.getRequiredVideoUrl();
+    }
+
+    public RegistrationResult selectTopic(String studentId, String courseId) {
+        Student student = students.get(studentId);
+        if (student == null) {
+            return RegistrationResult.failure("Student not found: " + studentId);
+        }
+
+        if (!courses.containsKey(courseId)) {
+            return RegistrationResult.failure("Course not found: " + courseId);
+        }
+
+        topicSelectionStore.saveSelectedTopic(studentId, courseId);
+        return RegistrationResult.success("Selected topic " + courseId + " for " + studentId);
+    }
+
+    public String getSelectedTopic(String studentId) {
+        return topicSelectionStore.getSelectedTopic(studentId);
+    }
+
+    public Course getCourseById(String courseId) {
+        return courses.get(courseId);
     }
 
     public RegistrationResult dropStudentFromCourse(String studentId, String courseId) {

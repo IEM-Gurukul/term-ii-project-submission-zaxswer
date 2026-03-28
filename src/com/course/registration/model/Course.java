@@ -9,14 +9,27 @@ public class Course {
     private final String title;
     private final int capacity;
     private final Set<String> prerequisites;
+    private final String requiredVideoUrl;
     private int enrolledCount;
 
     public Course(String courseId, String title, int capacity, Set<String> prerequisites) {
+        this(courseId, title, capacity, prerequisites, null);
+    }
+
+    public Course(String courseId, String title, int capacity, Set<String> prerequisites, String requiredVideoUrl) {
         this.courseId = courseId;
         this.title = title;
         this.capacity = capacity;
         this.prerequisites = new HashSet<>(prerequisites);
+        this.requiredVideoUrl = normalizeVideoUrl(requiredVideoUrl);
         this.enrolledCount = 0;
+    }
+
+    private String normalizeVideoUrl(String url) {
+        if (url == null || url.isBlank()) {
+            return null;
+        }
+        return url;
     }
 
     public String getCourseId() {
@@ -39,6 +52,14 @@ public class Course {
         return Collections.unmodifiableSet(prerequisites);
     }
 
+    public String getRequiredVideoUrl() {
+        return requiredVideoUrl;
+    }
+
+    public boolean requiresVideoWatch() {
+        return requiredVideoUrl != null;
+    }
+
     public boolean hasAvailableSeat() {
         return enrolledCount < capacity;
     }
@@ -59,7 +80,12 @@ public class Course {
 
     @Override
     public String toString() {
-        return String.format("%s - %s | Seats: %d/%d | Prerequisites: %s", courseId, title, enrolledCount, capacity,
-                prerequisites.isEmpty() ? "None" : prerequisites);
+        return String.format("%s - %s | Seats: %d/%d | Prerequisites: %s | Video Required: %s",
+            courseId,
+            title,
+            enrolledCount,
+            capacity,
+            prerequisites.isEmpty() ? "None" : prerequisites,
+            requiresVideoWatch() ? "Yes" : "No");
     }
 }

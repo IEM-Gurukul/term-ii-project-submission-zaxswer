@@ -157,6 +157,8 @@ public class TeacherPortalFrame extends JFrame {
         sb.append("Enrolled: ").append(course.getEnrolledCount()).append("\n");
         sb.append("Available Seats: ").append(course.getCapacity() - course.getEnrolledCount()).append("\n");
         sb.append("Prerequisites: ").append(formatPrerequisites(course.getPrerequisites())).append("\n");
+        sb.append("Required Video: ").append(course.requiresVideoWatch() ? course.getRequiredVideoUrl() : "None")
+            .append("\n");
         courseDetailsArea.setText(sb.toString());
     }
 
