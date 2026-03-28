@@ -16,21 +16,24 @@ import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JSplitPane;
 import javax.swing.JTextArea;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.Component;
-import java.awt.Desktop;
 import java.awt.FlowLayout;
 import java.awt.Font;
-import java.awt.GridLayout;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.net.URI;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 
 public class StudentPortalFrame extends JFrame {
+    private static final String DASHBOARD_VIEW = "DASHBOARD_VIEW";
     private static final String TOPIC_PICKER_VIEW = "TOPIC_PICKER_VIEW";
     private static final String TOPIC_DETAIL_VIEW = "TOPIC_DETAIL_VIEW";
 
@@ -42,15 +45,18 @@ public class StudentPortalFrame extends JFrame {
     private final JPanel cardPanel;
 
     private final DefaultListModel<Course> topicGalleryModel;
-    private final DefaultListModel<Course> enrolledCoursesModel;
+    private final DefaultListModel<String> weekPlanModel;
     private final JList<Course> topicGalleryList;
-    private final JList<Course> enrolledCoursesList;
+    private final JList<String> weekPlanList;
 
     private final JLabel selectedTopicTitle;
-    private final JTextArea selectedTopicDetails;
+    private final JTextArea dashboardProgressArea;
+    private final JavaFxWebVideoPanel videoEmbedPanel;
     private final JTextArea statusArea;
+    private final JButton continueCourseButton;
 
     private Course selectedTopic;
+    private final Map<String, String> selectedTopicWeekVideos;
 
     public StudentPortalFrame(CourseRegistrationSystem system, User currentUser, Runnable onLogout) {
         this.system = system;
@@ -59,42 +65,108 @@ public class StudentPortalFrame extends JFrame {
 
         setTitle("Course Registration - Student Portal | " + studentId);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(1050, 700);
+        setSize(1100, 760);
         setLocationRelativeTo(null);
 
         this.cardLayout = new CardLayout();
         this.cardPanel = new JPanel(cardLayout);
 
         this.topicGalleryModel = new DefaultListModel<>();
-        this.enrolledCoursesModel = new DefaultListModel<>();
+        this.weekPlanModel = new DefaultListModel<>();
+        this.selectedTopicWeekVideos = new LinkedHashMap<>();
 
         this.topicGalleryList = new JList<>(topicGalleryModel);
         this.topicGalleryList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         this.topicGalleryList.setCellRenderer(new CourseCardRenderer());
 
-        this.enrolledCoursesList = new JList<>(enrolledCoursesModel);
-        this.enrolledCoursesList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        this.enrolledCoursesList.setCellRenderer(new CourseCardRenderer());
+        this.weekPlanList = new JList<>(weekPlanModel);
+        this.weekPlanList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
         this.selectedTopicTitle = new JLabel("No topic selected");
         this.selectedTopicTitle.setFont(selectedTopicTitle.getFont().deriveFont(Font.BOLD, 18f));
 
-        this.selectedTopicDetails = new JTextArea(8, 40);
-        this.selectedTopicDetails.setEditable(false);
-        this.selectedTopicDetails.setLineWrap(true);
-        this.selectedTopicDetails.setWrapStyleWord(true);
+        this.dashboardProgressArea = new JTextArea(12, 80);
+        this.dashboardProgressArea.setEditable(false);
+        this.dashboardProgressArea.setLineWrap(true);
+        this.dashboardProgressArea.setWrapStyleWord(true);
+
+        this.videoEmbedPanel = new JavaFxWebVideoPanel();
 
         this.statusArea = new JTextArea(6, 80);
         this.statusArea.setEditable(false);
         this.statusArea.setLineWrap(true);
         this.statusArea.setWrapStyleWord(true);
 
+        this.continueCourseButton = new JButton("Continue Course");
+
+        cardPanel.add(buildDashboardPanel(), DASHBOARD_VIEW);
         cardPanel.add(buildTopicPickerPanel(), TOPIC_PICKER_VIEW);
         cardPanel.add(buildTopicDetailPanel(), TOPIC_DETAIL_VIEW);
 
         setContentPane(cardPanel);
+        wireSelectionHandlers();
         refreshCourseData();
         restoreSelectedTopic();
+        refreshDashboard();
+        showDashboard();
+    }
+
+    private void wireSelectionHandlers() {
+        topicGalleryList.addListSelectionListener(e -> {
+            if (e.getValueIsAdjusting()) {
+                return;
+            }
+            Course chosen = topicGalleryList.getSelectedValue();
+            if (chosen != null) {
+                selectedTopicTitle.setText(chosen.getCourseId() + " - " + chosen.getTitle());
+            }
+        });
+
+        topicGalleryList.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (e.getClickCount() == 2) {
+                    openSelectedTopicFromGallery();
+                }
+            }
+        });
+    }
+
+    private JPanel buildDashboardPanel() {
+        JPanel panel = new JPanel(new BorderLayout(12, 12));
+        panel.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
+
+        JLabel title = new JLabel("Student Progress Dashboard");
+        title.setFont(title.getFont().deriveFont(Font.BOLD, 22f));
+
+        JLabel subtitle = new JLabel("Track progress first, then continue your selected course.");
+
+        JPanel top = new JPanel(new BorderLayout(4, 4));
+        top.add(title, BorderLayout.NORTH);
+        top.add(subtitle, BorderLayout.CENTER);
+
+        JScrollPane progressPane = new JScrollPane(dashboardProgressArea);
+        progressPane.setBorder(BorderFactory.createTitledBorder("Progress"));
+
+        JButton chooseTopicButton = new JButton("Choose Topic");
+        JButton refreshDashboardButton = new JButton("Refresh Progress");
+        JButton logoutButton = new JButton("Logout");
+
+        continueCourseButton.addActionListener(e -> openContinueCourse());
+        chooseTopicButton.addActionListener(e -> showTopicPicker());
+        refreshDashboardButton.addActionListener(e -> refreshDashboard());
+        logoutButton.addActionListener(e -> doLogout());
+
+        JPanel actions = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 8));
+        actions.add(continueCourseButton);
+        actions.add(chooseTopicButton);
+        actions.add(refreshDashboardButton);
+        actions.add(logoutButton);
+
+        panel.add(top, BorderLayout.NORTH);
+        panel.add(progressPane, BorderLayout.CENTER);
+        panel.add(actions, BorderLayout.SOUTH);
+        return panel;
     }
 
     private JPanel buildTopicPickerPanel() {
@@ -104,7 +176,7 @@ public class StudentPortalFrame extends JFrame {
         JLabel title = new JLabel("Choose A Topic");
         title.setFont(title.getFont().deriveFont(Font.BOLD, 20f));
 
-        JTextArea subtitle = new JTextArea("Pick one topic from the gallery. Your selection is remembered for your next login.");
+        JTextArea subtitle = new JTextArea("Pick one topic from the gallery. Selection is saved and shown on your dashboard.");
         subtitle.setEditable(false);
         subtitle.setLineWrap(true);
         subtitle.setWrapStyleWord(true);
@@ -117,16 +189,19 @@ public class StudentPortalFrame extends JFrame {
         JScrollPane galleryPane = new JScrollPane(topicGalleryList);
         galleryPane.setBorder(BorderFactory.createTitledBorder("Topic Gallery"));
 
-        JButton openTopicButton = new JButton("Open Selected Topic");
+        JButton openTopicButton = new JButton("Save Selected Topic");
+        JButton backButton = new JButton("Go Back");
         JButton refreshButton = new JButton("Refresh Topics");
         JButton logoutButton = new JButton("Logout");
 
         openTopicButton.addActionListener(e -> openSelectedTopicFromGallery());
+        backButton.addActionListener(e -> showDashboard());
         refreshButton.addActionListener(e -> refreshCourseData());
         logoutButton.addActionListener(e -> doLogout());
 
         JPanel actions = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 8));
         actions.add(openTopicButton);
+        actions.add(backButton);
         actions.add(refreshButton);
         actions.add(logoutButton);
 
@@ -144,35 +219,35 @@ public class StudentPortalFrame extends JFrame {
         detailHeader.add(new JLabel("Selected Topic"), BorderLayout.NORTH);
         detailHeader.add(selectedTopicTitle, BorderLayout.CENTER);
 
-        JScrollPane detailsPane = new JScrollPane(selectedTopicDetails);
-        detailsPane.setBorder(BorderFactory.createTitledBorder("Topic Details"));
+        JScrollPane weekListPane = new JScrollPane(weekPlanList);
+        weekListPane.setBorder(BorderFactory.createTitledBorder("Week 1 - Week 8"));
 
-        JScrollPane enrolledPane = new JScrollPane(enrolledCoursesList);
-        enrolledPane.setBorder(BorderFactory.createTitledBorder("My Enrolled Courses"));
+        JScrollPane embedPane = new JScrollPane(videoEmbedPanel);
+        embedPane.setBorder(BorderFactory.createTitledBorder("Embedded YouTube Video"));
 
-        JPanel center = new JPanel(new GridLayout(1, 2, 12, 12));
-        center.add(detailsPane);
-        center.add(enrolledPane);
+        JSplitPane centerSplit = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, weekListPane, embedPane);
+        centerSplit.setResizeWeight(0.25);
+        centerSplit.setDividerLocation(240);
 
-        JButton watchVideoButton = new JButton("Watch Topic Video");
+        JButton playVideoButton = new JButton("Play Video");
         JButton enrollButton = new JButton("Enroll In Topic");
-        JButton dropButton = new JButton("Drop Selected Enrolled Topic");
-        JButton chooseAnotherButton = new JButton("Choose Another Topic");
+        JButton dropButton = new JButton("Drop Selected Topic");
+        JButton goBackButton = new JButton("Go Back");
         JButton refreshButton = new JButton("Refresh");
         JButton logoutButton = new JButton("Logout");
 
-        watchVideoButton.addActionListener(e -> watchSelectedTopicVideo());
+        playVideoButton.addActionListener(e -> playSelectedWeekVideo());
         enrollButton.addActionListener(e -> enrollInSelectedTopic());
-        dropButton.addActionListener(e -> dropSelectedEnrolledTopic());
-        chooseAnotherButton.addActionListener(e -> showTopicPicker());
+        dropButton.addActionListener(e -> dropSelectedTopic());
+        goBackButton.addActionListener(e -> showDashboard());
         refreshButton.addActionListener(e -> refreshTopicDetail());
         logoutButton.addActionListener(e -> doLogout());
 
         JPanel actionPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 8));
-        actionPanel.add(watchVideoButton);
+        actionPanel.add(playVideoButton);
         actionPanel.add(enrollButton);
         actionPanel.add(dropButton);
-        actionPanel.add(chooseAnotherButton);
+        actionPanel.add(goBackButton);
         actionPanel.add(refreshButton);
         actionPanel.add(logoutButton);
 
@@ -184,14 +259,13 @@ public class StudentPortalFrame extends JFrame {
         south.add(statusPane, BorderLayout.CENTER);
 
         panel.add(detailHeader, BorderLayout.NORTH);
-        panel.add(center, BorderLayout.CENTER);
+        panel.add(centerSplit, BorderLayout.CENTER);
         panel.add(south, BorderLayout.SOUTH);
         return panel;
     }
 
     private void refreshCourseData() {
         topicGalleryModel.clear();
-        enrolledCoursesModel.clear();
 
         Student student = system.getStudent(studentId);
         if (student == null) {
@@ -202,30 +276,71 @@ public class StudentPortalFrame extends JFrame {
         List<Course> allCourses = system.getAllCourses();
         for (Course course : allCourses) {
             topicGalleryModel.addElement(course);
-            if (student.isAlreadyEnrolled(course.getCourseId())) {
-                enrolledCoursesModel.addElement(course);
-            }
         }
     }
 
     private void restoreSelectedTopic() {
         String savedTopicId = system.getSelectedTopic(studentId);
         if (savedTopicId == null || savedTopicId.isBlank()) {
-            showTopicPicker();
-            appendStatus("Select a topic from the gallery.");
+            selectedTopic = null;
+            selectedTopicTitle.setText("No topic selected");
             return;
         }
 
         Course savedTopic = system.getCourseById(savedTopicId);
         if (savedTopic == null) {
-            showTopicPicker();
+            selectedTopic = null;
+            selectedTopicTitle.setText("No topic selected");
             appendStatus("Previously selected topic is no longer available.");
             return;
         }
 
-        setSelectedTopic(savedTopic);
+        selectedTopic = savedTopic;
+        selectedTopicTitle.setText(savedTopic.getCourseId() + " - " + savedTopic.getTitle());
+        topicGalleryList.setSelectedValue(savedTopic, true);
+    }
+
+    private void refreshDashboard() {
+        if (selectedTopic == null) {
+            dashboardProgressArea.setText(
+                    "Student: " + studentId + "\n"
+                            + "Selected Topic: None\n"
+                            + "Current Week: -\n"
+                            + "Enrollment: -\n"
+                            + "Video Completion: -\n\n"
+                            + "Next Step:\n"
+                            + "1. Click 'Choose Topic'\n"
+                            + "2. Save a topic\n"
+                            + "3. Click 'Continue Course'\n");
+            continueCourseButton.setEnabled(false);
+            return;
+        }
+
+        Student student = system.getStudent(studentId);
+        boolean enrolled = student != null && student.isAlreadyEnrolled(selectedTopic.getCourseId());
+        boolean watched = system.hasWatchedCourseVideo(studentId, selectedTopic.getCourseId());
+        int week = system.getStudentCurrentWeek(studentId, selectedTopic.getCourseId());
+
+        dashboardProgressArea.setText(
+                "Student: " + studentId + "\n"
+                        + "Selected Topic: " + selectedTopic.getCourseId() + " - " + selectedTopic.getTitle() + "\n"
+                        + "Current Week: Week " + week + " of 8\n"
+                        + "Enrollment: " + (enrolled ? "Enrolled" : "Not Enrolled") + "\n"
+                        + "Video Completion Requirement: " + (watched ? "Completed" : "Pending") + "\n\n"
+                        + "Next Step:\n"
+                        + "Click 'Continue Course' to open Week 1-8 and play video.\n");
+
+        continueCourseButton.setEnabled(true);
+    }
+
+    private void openContinueCourse() {
+        if (selectedTopic == null) {
+            appendStatus("No topic selected yet. Choose a topic first.");
+            showTopicPicker();
+            return;
+        }
+        refreshTopicDetail();
         cardLayout.show(cardPanel, TOPIC_DETAIL_VIEW);
-        appendStatus("Restored your selected topic: " + savedTopic.getCourseId());
     }
 
     private void openSelectedTopicFromGallery() {
@@ -242,74 +357,154 @@ public class StudentPortalFrame extends JFrame {
             return;
         }
 
-        setSelectedTopic(chosen);
-        cardLayout.show(cardPanel, TOPIC_DETAIL_VIEW);
+        selectedTopic = chosen;
+        selectedTopicTitle.setText(chosen.getCourseId() + " - " + chosen.getTitle());
+        topicGalleryList.setSelectedValue(chosen, true);
+        refreshDashboard();
+        showDashboard();
     }
 
-    private void setSelectedTopic(Course course) {
-        selectedTopic = course;
-        selectedTopicTitle.setText(course.getCourseId() + " - " + course.getTitle());
-        refreshTopicDetail();
+    private void populateWeekPlanForSelectedTopic() {
+        weekPlanModel.clear();
+        selectedTopicWeekVideos.clear();
+
+        if (selectedTopic == null) {
+            showVideoPlaceholder("No topic selected.");
+            return;
+        }
+
+        String baseUrl = system.getCourseVideoUrl(selectedTopic.getCourseId());
+        if (baseUrl == null || baseUrl.isBlank()) {
+            showVideoPlaceholder("No video configured for this topic.");
+            return;
+        }
+
+        String embedUrl = toYouTubeEmbedUrl(baseUrl);
+        for (int week = 1; week <= 8; week++) {
+            String weekLabel = "Week " + week;
+            String weekUrl = embedUrl + "?start=" + ((week - 1) * 300);
+            weekPlanModel.addElement(weekLabel);
+            selectedTopicWeekVideos.put(weekLabel, weekUrl);
+        }
+
+        int currentWeek = system.getStudentCurrentWeek(studentId, selectedTopic.getCourseId());
+        int initialIndex = Math.max(0, Math.min(7, currentWeek - 1));
+        weekPlanList.setSelectedIndex(initialIndex);
+        showVideoPlaceholder("Week selected. Click 'Play Video' to load the embedded player.");
+    }
+
+    private void showVideoPlaceholder(String message) {
+        videoEmbedPanel.showPlaceholder(message);
+    }
+
+    private String toYouTubeEmbedUrl(String url) {
+        if (url == null) {
+            return null;
+        }
+        String videoId = extractYouTubeVideoId(url);
+        if (videoId == null || videoId.isBlank()) {
+            return url;
+        }
+        return "https://www.youtube.com/embed/" + videoId;
+    }
+
+    private String extractYouTubeVideoId(String url) {
+        try {
+            URI uri = URI.create(url);
+            String host = uri.getHost();
+            if (host == null) {
+                return null;
+            }
+
+            if (host.contains("youtu.be")) {
+                String path = uri.getPath();
+                if (path != null && path.length() > 1) {
+                    return path.substring(1);
+                }
+            }
+
+            String query = uri.getQuery();
+            if (query != null) {
+                String[] parts = query.split("&");
+                for (String part : parts) {
+                    String[] kv = part.split("=", 2);
+                    if (kv.length == 2 && "v".equals(kv[0])) {
+                        return kv[1];
+                    }
+                }
+            }
+
+            String path = uri.getPath();
+            if (path != null && path.startsWith("/embed/")) {
+                return path.substring("/embed/".length());
+            }
+        } catch (Exception ignored) {
+            return null;
+        }
+        return null;
     }
 
     private void refreshTopicDetail() {
         refreshCourseData();
 
         if (selectedTopic == null) {
-            selectedTopicDetails.setText("No topic selected.");
+            showVideoPlaceholder("No topic selected.");
             return;
         }
 
         Course latest = system.getCourseById(selectedTopic.getCourseId());
         if (latest != null) {
             selectedTopic = latest;
+            selectedTopicTitle.setText(latest.getCourseId() + " - " + latest.getTitle());
         }
 
-        boolean watched = system.hasWatchedCourseVideo(studentId, selectedTopic.getCourseId());
-        Student student = system.getStudent(studentId);
-        boolean enrolled = student != null && student.isAlreadyEnrolled(selectedTopic.getCourseId());
-
-        StringBuilder details = new StringBuilder();
-        details.append("Course ID: ").append(selectedTopic.getCourseId()).append("\n");
-        details.append("Title: ").append(selectedTopic.getTitle()).append("\n");
-        details.append("Seats: ").append(selectedTopic.getEnrolledCount()).append("/").append(selectedTopic.getCapacity())
-                .append("\n");
-        details.append("Prerequisites: ").append(formatPrerequisites(selectedTopic.getPrerequisites())).append("\n");
-        details.append("Video Required: ").append(selectedTopic.requiresVideoWatch() ? "Yes" : "No").append("\n");
-        details.append("Video Watched: ").append(watched ? "Yes" : "No").append("\n");
-        details.append("Enrolled: ").append(enrolled ? "Yes" : "No").append("\n");
-        if (selectedTopic.requiresVideoWatch() && selectedTopic.getRequiredVideoUrl() != null) {
-            details.append("Video URL: ").append(selectedTopic.getRequiredVideoUrl()).append("\n");
-        }
-
-        selectedTopicDetails.setText(details.toString());
+        populateWeekPlanForSelectedTopic();
     }
 
-    private void watchSelectedTopicVideo() {
+    private void playSelectedWeekVideo() {
         if (selectedTopic == null) {
             appendStatus("Select a topic first.");
             return;
         }
 
-        String videoUrl = system.getCourseVideoUrl(selectedTopic.getCourseId());
-        if (videoUrl == null || videoUrl.isBlank()) {
-            appendStatus("No required video configured for " + selectedTopic.getCourseId() + ".");
+        String selectedWeek = weekPlanList.getSelectedValue();
+        if (selectedWeek == null) {
+            appendStatus("Select a week first (Week 1 to Week 8).");
             return;
         }
 
-        try {
-            if (!Desktop.isDesktopSupported()) {
-                appendStatus("Desktop browsing is not supported on this system.");
-                return;
-            }
+        String videoUrl = selectedTopicWeekVideos.get(selectedWeek);
+        if (videoUrl == null || videoUrl.isBlank()) {
+            appendStatus("No video configured for " + selectedWeek + ".");
+            return;
+        }
 
-            Desktop.getDesktop().browse(URI.create(videoUrl));
-            RegistrationResult watchedResult = system.markCourseVideoWatched(studentId, selectedTopic.getCourseId());
-            appendStatus("Opened video: " + videoUrl);
-            appendStatus(watchedResult.getMessage());
-            refreshTopicDetail();
-        } catch (Exception ex) {
-            appendStatus("Could not open video URL: " + ex.getMessage());
+        String html = "<html><body style='font-family:sans-serif; margin:10px;'>"
+                + "<h3>" + selectedWeek + "</h3>"
+                + "<iframe width='760' height='430' src='" + videoUrl
+                + "' title='YouTube video player' frameborder='0' allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share' allowfullscreen></iframe>"
+                + "</body></html>";
+        videoEmbedPanel.loadHtml(html);
+
+        int weekNumber = parseWeekNumber(selectedWeek);
+        RegistrationResult watchResult = system.markCourseVideoWatched(studentId, selectedTopic.getCourseId());
+        RegistrationResult progressResult = system.updateStudentCurrentWeek(studentId, selectedTopic.getCourseId(), weekNumber);
+
+        appendStatus("Playing " + selectedWeek + " for " + selectedTopic.getCourseId() + ".");
+        appendStatus(watchResult.getMessage());
+        appendStatus(progressResult.getMessage());
+        refreshDashboard();
+    }
+
+    private int parseWeekNumber(String weekLabel) {
+        if (weekLabel == null) {
+            return 1;
+        }
+        String cleaned = weekLabel.replace("Week", "").trim();
+        try {
+            return Integer.parseInt(cleaned);
+        } catch (NumberFormatException ex) {
+            return 1;
         }
     }
 
@@ -321,19 +516,19 @@ public class StudentPortalFrame extends JFrame {
 
         RegistrationResult result = system.registerStudentForCourse(studentId, selectedTopic.getCourseId());
         appendStatus(result.getMessage());
+        refreshDashboard();
         refreshTopicDetail();
     }
 
-    private void dropSelectedEnrolledTopic() {
-        Course enrolled = enrolledCoursesList.getSelectedValue();
-        if (enrolled == null) {
-            JOptionPane.showMessageDialog(this, "Select an enrolled topic to drop.", "No Selection",
+    private void dropSelectedTopic() {
+        if (selectedTopic == null) {
+            JOptionPane.showMessageDialog(this, "Select a topic first.", "No Selection",
                     JOptionPane.WARNING_MESSAGE);
             return;
         }
 
         int confirm = JOptionPane.showConfirmDialog(this,
-                "Drop " + enrolled.getCourseId() + " - " + enrolled.getTitle() + "?",
+                "Drop " + selectedTopic.getCourseId() + " - " + selectedTopic.getTitle() + "?",
                 "Confirm Drop",
                 JOptionPane.YES_NO_OPTION);
 
@@ -341,17 +536,19 @@ public class StudentPortalFrame extends JFrame {
             return;
         }
 
-        RegistrationResult result = system.dropStudentFromCourse(studentId, enrolled.getCourseId());
+        RegistrationResult result = system.dropStudentFromCourse(studentId, selectedTopic.getCourseId());
         appendStatus(result.getMessage());
+        refreshDashboard();
         refreshTopicDetail();
+    }
+
+    private void showDashboard() {
+        refreshDashboard();
+        cardLayout.show(cardPanel, DASHBOARD_VIEW);
     }
 
     private void showTopicPicker() {
         cardLayout.show(cardPanel, TOPIC_PICKER_VIEW);
-    }
-
-    private String formatPrerequisites(Set<String> prerequisites) {
-        return prerequisites.isEmpty() ? "None" : String.join(", ", prerequisites);
     }
 
     private void appendStatus(String message) {
@@ -369,13 +566,13 @@ public class StudentPortalFrame extends JFrame {
     private static class CourseCardRenderer extends DefaultListCellRenderer {
         @Override
         public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected,
-                boolean cellHasFocus) {
+                                                      boolean cellHasFocus) {
             JLabel label = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
             if (value instanceof Course) {
                 Course course = (Course) value;
                 label.setText("<html><div style='padding:6px;'><b>" + course.getCourseId() + " - "
-                        + course.getTitle()
-                        + "</b><br/>Seats: " + course.getEnrolledCount() + "/" + course.getCapacity() + "</div></html>");
+                        + course.getTitle() + "</b><br/>Seats: " + course.getEnrolledCount() + "/"
+                        + course.getCapacity() + "</div></html>");
                 label.setBorder(BorderFactory.createEmptyBorder(4, 6, 4, 6));
             }
             return label;
