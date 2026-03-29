@@ -15,23 +15,24 @@ import java.util.Set;
 
 public class Main {
     public static void main(String[] args) {
-        CourseRegistrationSystem system = new CourseRegistrationSystem();
-        seedData(system);
-        launchGui(system);
-    }
-
-    private static void launchGui(CourseRegistrationSystem system) {
-        SwingUtilities.invokeLater(() -> showLoginAndPortal(system));
-    }
-
-    private static void showLoginAndPortal(CourseRegistrationSystem system) {
         AuthenticationManager authManager = new AuthenticationManager();
+        CourseRegistrationSystem system = new CourseRegistrationSystem();
+        seedData(system, authManager);
+        launchGui(system, authManager);
+    }
+
+    private static void launchGui(CourseRegistrationSystem system, AuthenticationManager authManager) {
+        SwingUtilities.invokeLater(() -> showLoginAndPortal(system, authManager));
+    }
+
+    private static void showLoginAndPortal(CourseRegistrationSystem system, AuthenticationManager authManager) {
         User authenticatedUser = LoginDialog.showLoginDialog(authManager);
 
         if (authenticatedUser != null) {
-            Runnable logoutCallback = () -> SwingUtilities.invokeLater(() -> showLoginAndPortal(system));
+            Runnable logoutCallback = () -> SwingUtilities.invokeLater(() -> showLoginAndPortal(system, authManager));
 
             if (authenticatedUser.getRole() == User.Role.STUDENT) {
+                ensureStudentExists(system, authenticatedUser.getUsername());
                 StudentPortalFrame frame = new StudentPortalFrame(system, authenticatedUser, logoutCallback);
                 frame.setVisible(true);
             } else if (authenticatedUser.getRole() == User.Role.TEACHER) {
@@ -41,7 +42,7 @@ public class Main {
         }
     }
 
-    private static void seedData(CourseRegistrationSystem system) {
+    private static void seedData(CourseRegistrationSystem system, AuthenticationManager authManager) {
         system.addCourse(new Course("CS101", "Introduction to Programming", 3, Set.of(), List.of(
             "https://www.youtube.com/watch?v=8PopR3x-VMY",
             "https://www.youtube.com/watch?v=eIrMbAQSU34",
@@ -83,8 +84,14 @@ public class Main {
             "https://www.youtube.com/watch?v=ddTC4Zovtbc"
         )));
 
-        system.addStudent(new Student("S001", "Alice", 3));
-        system.addStudent(new Student("S002", "Bob", 2));
-        system.addStudent(new Student("S003", "Charlie", 2));
+        for (String studentUsername : authManager.getStudentUsernames()) {
+            ensureStudentExists(system, studentUsername);
+        }
+    }
+
+    private static void ensureStudentExists(CourseRegistrationSystem system, String studentId) {
+        if (system.getStudent(studentId) == null) {
+            system.addStudent(new Student(studentId, studentId, 3));
+        }
     }
 }

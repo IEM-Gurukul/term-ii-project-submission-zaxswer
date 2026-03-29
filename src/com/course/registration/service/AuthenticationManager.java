@@ -1,28 +1,41 @@
 package com.course.registration.service;
 
 import com.course.registration.model.User;
+
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class AuthenticationManager {
     private final Map<String, User> users;
+    private static final String USERS_FILE_PATH = "src/data/users.csv";
 
     public AuthenticationManager() {
         this.users = new HashMap<>();
-        initializeDefaultUsers();
+        loadUsersFromCSV();
     }
 
-    private void initializeDefaultUsers() {
-        // Add default teachers with password "admin123"
-        users.put("teacher1", new User("teacher1", "admin123", User.Role.TEACHER));
-        users.put("teacher2", new User("teacher2", "admin123", User.Role.TEACHER));
-        users.put("teacher3", new User("teacher3", "admin123", User.Role.TEACHER));
-        users.put("teacher4", new User("teacher4", "admin123", User.Role.TEACHER));
-
-        // Add sample students (username and password are the same)
-        users.put("S001", new User("S001", "S001", User.Role.STUDENT));
-        users.put("S002", new User("S002", "S002", User.Role.STUDENT));
-        users.put("S003", new User("S003", "S003", User.Role.STUDENT));
+    private void loadUsersFromCSV() {
+        try (BufferedReader br = new BufferedReader(new FileReader(USERS_FILE_PATH))) {
+            String line;
+            br.readLine(); // Skip header
+            while ((line = br.readLine()) != null) {
+                String[] values = line.split(",");
+                if (values.length == 3) {
+                    String username = values[0].trim();
+                    String password = values[1].trim();
+                    User.Role role = User.Role.valueOf(values[2].trim().toUpperCase());
+                    users.put(username, new User(username, password, role));
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            // In a real application, you'd want to handle this more gracefully
+        }
     }
 
     public User authenticate(String username, String password) {
@@ -62,5 +75,16 @@ public class AuthenticationManager {
         String normalizedUsername = username.trim().toUpperCase();
         return users.containsKey(normalizedUsername)
                 && users.get(normalizedUsername).getRole() == User.Role.STUDENT;
+    }
+
+    public List<String> getStudentUsernames() {
+        List<String> studentUsernames = new ArrayList<>();
+        for (User user : users.values()) {
+            if (user.getRole() == User.Role.STUDENT) {
+                studentUsernames.add(user.getUsername());
+            }
+        }
+        studentUsernames.sort(String::compareTo);
+        return studentUsernames;
     }
 }

@@ -68,7 +68,7 @@ public class LoginDialog extends JDialog {
         JButton exitButton = new JButton("Exit");
 
         loginButton.addActionListener(e -> doLogin());
-        exitButton.addActionListener(e -> System.exit(0));
+        exitButton.addActionListener(e -> dispose());
 
         buttonPanel.add(loginButton);
         buttonPanel.add(exitButton);
