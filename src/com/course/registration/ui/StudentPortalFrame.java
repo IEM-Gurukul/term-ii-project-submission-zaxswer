@@ -3,6 +3,8 @@ package com.course.registration.ui;
 import com.course.registration.model.Course;
 import com.course.registration.model.Student;
 import com.course.registration.model.User;
+import com.course.quiz.QuizQuestion;
+import com.course.quiz.WeeklyQuizService;
 import com.course.registration.service.CourseRegistrationSystem;
 import com.course.registration.service.RegistrationResult;
 
@@ -41,6 +43,7 @@ public class StudentPortalFrame extends JFrame {
     private final CourseRegistrationSystem system;
     private final String studentId;
     private final Runnable onLogout;
+    private final WeeklyQuizService weeklyQuizService;
 
     private final CardLayout cardLayout;
     private final JPanel cardPanel;
@@ -63,6 +66,7 @@ public class StudentPortalFrame extends JFrame {
         this.system = system;
         this.studentId = currentUser.getUsername();
         this.onLogout = onLogout;
+        this.weeklyQuizService = new WeeklyQuizService();
 
         setTitle("Course Registration - Student Portal | " + studentId);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -216,7 +220,11 @@ public class StudentPortalFrame extends JFrame {
         JPanel panel = new JPanel(new BorderLayout(12, 12));
         panel.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
 
+        JButton backButton = new JButton("Go Back");
+        backButton.addActionListener(e -> showDashboard());
+
         JPanel detailHeader = new JPanel(new BorderLayout(6, 6));
+        detailHeader.add(backButton, BorderLayout.WEST);
         detailHeader.add(new JLabel("Selected Topic"), BorderLayout.NORTH);
         detailHeader.add(selectedTopicTitle, BorderLayout.CENTER);
 
@@ -231,26 +239,17 @@ public class StudentPortalFrame extends JFrame {
         centerSplit.setDividerLocation(240);
 
         JButton playVideoButton = new JButton("Go To YouTube Video");
-        JButton enrollButton = new JButton("Enroll In Topic");
-        JButton dropButton = new JButton("Drop Selected Topic");
-        JButton goBackButton = new JButton("Go Back");
-        JButton refreshButton = new JButton("Refresh");
-        JButton logoutButton = new JButton("Logout");
+        JButton markWeekCompletedButton = new JButton("Mark Week As Completed");
+        JButton takeQuizButton = new JButton("Take Quiz (MCQ)");
 
         playVideoButton.addActionListener(e -> playSelectedWeekVideo());
-        enrollButton.addActionListener(e -> enrollInSelectedTopic());
-        dropButton.addActionListener(e -> dropSelectedTopic());
-        goBackButton.addActionListener(e -> showDashboard());
-        refreshButton.addActionListener(e -> refreshTopicDetail());
-        logoutButton.addActionListener(e -> doLogout());
+        markWeekCompletedButton.addActionListener(e -> markSelectedWeekCompleted());
+        takeQuizButton.addActionListener(e -> takeSelectedWeekQuiz());
 
         JPanel actionPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 8));
         actionPanel.add(playVideoButton);
-        actionPanel.add(enrollButton);
-        actionPanel.add(dropButton);
-        actionPanel.add(goBackButton);
-        actionPanel.add(refreshButton);
-        actionPanel.add(logoutButton);
+        actionPanel.add(markWeekCompletedButton);
+        actionPanel.add(takeQuizButton);
 
         JScrollPane statusPane = new JScrollPane(statusArea);
         statusPane.setBorder(BorderFactory.createTitledBorder("Status"));
@@ -321,15 +320,16 @@ public class StudentPortalFrame extends JFrame {
         boolean enrolled = student != null && student.isAlreadyEnrolled(selectedTopic.getCourseId());
         boolean watched = system.hasWatchedCourseVideo(studentId, selectedTopic.getCourseId());
         int week = system.getStudentCurrentWeek(studentId, selectedTopic.getCourseId());
+        String weekProgress = week <= 0 ? "Not completed yet" : "Week " + week + " of 8";
 
         dashboardProgressArea.setText(
                 "Student: " + studentId + "\n"
                         + "Selected Topic: " + selectedTopic.getCourseId() + " - " + selectedTopic.getTitle() + "\n"
-                        + "Current Week: Week " + week + " of 8\n"
+                    + "Current Week: " + weekProgress + "\n"
                         + "Enrollment: " + (enrolled ? "Enrolled" : "Not Enrolled") + "\n"
                         + "Video Completion Requirement: " + (watched ? "Completed" : "Pending") + "\n\n"
                         + "Next Step:\n"
-                        + "Click 'Continue Course' to open Week 1-8 and play video.\n");
+                    + "Open a week's YouTube link, then click 'Mark Week As Completed'.\n");
 
         continueCourseButton.setEnabled(true);
     }
@@ -391,7 +391,7 @@ public class StudentPortalFrame extends JFrame {
         }
 
         int currentWeek = system.getStudentCurrentWeek(studentId, selectedTopic.getCourseId());
-        int initialIndex = Math.max(0, Math.min(7, currentWeek - 1));
+        int initialIndex = currentWeek <= 0 ? 0 : Math.max(0, Math.min(7, currentWeek - 1));
         weekPlanList.setSelectedIndex(initialIndex);
         showVideoPlaceholder("Week selected. Click 'Go To YouTube Video' to open the normal YouTube link.");
     }
@@ -446,14 +446,85 @@ public class StudentPortalFrame extends JFrame {
             return;
         }
 
+        appendStatus("Opened YouTube link for " + selectedWeek + " in browser.");
+    }
+
+    private void markSelectedWeekCompleted() {
+        if (selectedTopic == null) {
+            appendStatus("Select a topic first.");
+            return;
+        }
+
+        String selectedWeek = weekPlanList.getSelectedValue();
+        if (selectedWeek == null) {
+            appendStatus("Select a week first (Week 1 to Week 8).");
+            return;
+        }
+
         int weekNumber = parseWeekNumber(selectedWeek);
         RegistrationResult watchResult = system.markCourseVideoWatched(studentId, selectedTopic.getCourseId());
         RegistrationResult progressResult = system.updateStudentCurrentWeek(studentId, selectedTopic.getCourseId(), weekNumber);
 
-        appendStatus("Playing " + selectedWeek + " for " + selectedTopic.getCourseId() + ".");
-        appendStatus(watchResult.getMessage());
-        appendStatus(progressResult.getMessage());
+        if (watchResult.isSuccess() && progressResult.isSuccess()) {
+            appendStatus("Week " + weekNumber + " is completed.");
+        } else {
+            appendStatus(watchResult.getMessage());
+            appendStatus(progressResult.getMessage());
+        }
+
         refreshDashboard();
+    }
+
+    private void takeSelectedWeekQuiz() {
+        if (selectedTopic == null) {
+            appendStatus("Select a topic first.");
+            return;
+        }
+
+        String selectedWeek = weekPlanList.getSelectedValue();
+        if (selectedWeek == null) {
+            appendStatus("Select a week first (Week 1 to Week 8).");
+            return;
+        }
+
+        int weekNumber = parseWeekNumber(selectedWeek);
+        int completedWeek = system.getStudentCurrentWeek(studentId, selectedTopic.getCourseId());
+        if (completedWeek < weekNumber) {
+            appendStatus("Complete " + selectedWeek + " before taking its quiz.");
+            return;
+        }
+
+        List<QuizQuestion> questions = weeklyQuizService.getQuestionsForWeek(selectedTopic.getCourseId(), weekNumber);
+        if (questions.isEmpty()) {
+            appendStatus("No quiz available for " + selectedWeek + ".");
+            return;
+        }
+
+        int score = 0;
+        for (int i = 0; i < questions.size(); i++) {
+            QuizQuestion question = questions.get(i);
+            int selectedOption = JOptionPane.showOptionDialog(
+                    this,
+                    question.getPrompt(),
+                    "Quiz " + (i + 1) + "/" + questions.size() + " - " + selectedTopic.getCourseId() + " " + selectedWeek,
+                    JOptionPane.DEFAULT_OPTION,
+                    JOptionPane.QUESTION_MESSAGE,
+                    null,
+                    question.getOptions().toArray(),
+                    question.getOptions().get(0)
+            );
+
+            if (selectedOption < 0) {
+                appendStatus("Quiz cancelled.");
+                return;
+            }
+
+            if (selectedOption == question.getCorrectOptionIndex()) {
+                score++;
+            }
+        }
+
+        appendStatus("Quiz result for " + selectedWeek + ": " + score + "/" + questions.size() + " correct.");
     }
 
     private int parseWeekNumber(String weekLabel) {
@@ -466,40 +537,6 @@ public class StudentPortalFrame extends JFrame {
         } catch (NumberFormatException ex) {
             return 1;
         }
-    }
-
-    private void enrollInSelectedTopic() {
-        if (selectedTopic == null) {
-            appendStatus("Select a topic first.");
-            return;
-        }
-
-        RegistrationResult result = system.registerStudentForCourse(studentId, selectedTopic.getCourseId());
-        appendStatus(result.getMessage());
-        refreshDashboard();
-        refreshTopicDetail();
-    }
-
-    private void dropSelectedTopic() {
-        if (selectedTopic == null) {
-            JOptionPane.showMessageDialog(this, "Select a topic first.", "No Selection",
-                    JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-
-        int confirm = JOptionPane.showConfirmDialog(this,
-                "Drop " + selectedTopic.getCourseId() + " - " + selectedTopic.getTitle() + "?",
-                "Confirm Drop",
-                JOptionPane.YES_NO_OPTION);
-
-        if (confirm != JOptionPane.YES_OPTION) {
-            return;
-        }
-
-        RegistrationResult result = system.dropStudentFromCourse(studentId, selectedTopic.getCourseId());
-        appendStatus(result.getMessage());
-        refreshDashboard();
-        refreshTopicDetail();
     }
 
     private void showDashboard() {
