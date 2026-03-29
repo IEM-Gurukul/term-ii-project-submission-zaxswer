@@ -1,0 +1,1 @@
+java -cp bin com.course.registration.Main

@@ -1,0 +1,1 @@
+javac -d bin src/com/course/registration/Main.java src/com/course/registration/model/*.java src/com/course/registration/service/*.java src/com/course/registration/ui/*.java src/com/learning/*.java src/com/course/quiz/*.java
