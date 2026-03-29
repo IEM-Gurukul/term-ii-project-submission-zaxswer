@@ -14,9 +14,11 @@ import javax.swing.JPanel;
 import javax.swing.JPasswordField;
 import javax.swing.JTextField;
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.GridLayout;
 
 public class LoginDialog extends JDialog {
+    private static final Color BACKGROUND_COLOR = new Color(240, 248, 255); // AliceBlue
     private final AuthenticationManager authManager;
     private User authenticatedUser;
 
@@ -36,11 +38,13 @@ public class LoginDialog extends JDialog {
 
         JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
         mainPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        mainPanel.setBackground(BACKGROUND_COLOR);
 
         JLabel titleLabel = new JLabel("Login to Course Registration System");
         titleLabel.setFont(titleLabel.getFont().deriveFont(16f));
 
         JPanel formPanel = new JPanel(new GridLayout(3, 2, 10, 10));
+        formPanel.setOpaque(false);
 
         JLabel roleLabel = new JLabel("Login as:");
         roleSelector = new JComboBox<>(new String[]{"Student", "Teacher"});
@@ -59,6 +63,7 @@ public class LoginDialog extends JDialog {
         formPanel.add(passwordField);
 
         JPanel buttonPanel = new JPanel();
+        buttonPanel.setOpaque(false);
         JButton loginButton = new JButton("Login");
         JButton exitButton = new JButton("Exit");
 

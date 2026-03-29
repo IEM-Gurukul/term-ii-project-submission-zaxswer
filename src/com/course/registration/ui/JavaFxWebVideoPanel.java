@@ -5,10 +5,12 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.SwingUtilities;
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 
 public class JavaFxWebVideoPanel extends JPanel {
+    private static final Color BACKGROUND_COLOR = new Color(240, 248, 255); // AliceBlue
     private final JTextArea fallbackTextArea;
     private Object webEngine;
     private Method webEngineLoadContent;
@@ -18,11 +20,13 @@ public class JavaFxWebVideoPanel extends JPanel {
 
     public JavaFxWebVideoPanel() {
         super(new BorderLayout());
+        setBackground(BACKGROUND_COLOR);
 
         fallbackTextArea = new JTextArea();
         fallbackTextArea.setEditable(false);
         fallbackTextArea.setLineWrap(true);
         fallbackTextArea.setWrapStyleWord(true);
+        fallbackTextArea.setBackground(BACKGROUND_COLOR);
 
         javaFxReady = initializeJavaFxWebView();
         if (!javaFxReady) {
@@ -33,8 +37,8 @@ public class JavaFxWebVideoPanel extends JPanel {
 
     public void showPlaceholder(String message) {
         String safeMessage = message == null ? "" : message;
-        String html = "<html><body style='font-family:sans-serif; margin:10px;'><p>" + escapeHtml(safeMessage)
-                + "</p></body></html>";
+        String html = "<html><body style='font-family:sans-serif; margin:10px; background-color: #f0f8ff;'>"
+                + "<p>" + escapeHtml(safeMessage) + "</p></body></html>";
         loadHtml(html);
     }
 

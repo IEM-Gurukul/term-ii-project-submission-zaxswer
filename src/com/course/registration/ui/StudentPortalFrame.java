@@ -1,5 +1,7 @@
 package com.course.registration.ui;
 
+import java.awt.Color;
+
 import com.course.registration.model.Course;
 import com.course.registration.model.Student;
 import com.course.registration.model.User;
@@ -40,6 +42,8 @@ public class StudentPortalFrame extends JFrame {
     private static final String TOPIC_PICKER_VIEW = "TOPIC_PICKER_VIEW";
     private static final String TOPIC_DETAIL_VIEW = "TOPIC_DETAIL_VIEW";
 
+    private static final Color BACKGROUND_COLOR = new Color(240, 248, 255); // AliceBlue
+
     private final CourseRegistrationSystem system;
     private final String studentId;
     private final Runnable onLogout;
@@ -75,6 +79,7 @@ public class StudentPortalFrame extends JFrame {
 
         this.cardLayout = new CardLayout();
         this.cardPanel = new JPanel(cardLayout);
+        cardPanel.setBackground(BACKGROUND_COLOR);
 
         this.topicGalleryModel = new DefaultListModel<>();
         this.weekPlanModel = new DefaultListModel<>();
@@ -83,9 +88,11 @@ public class StudentPortalFrame extends JFrame {
         this.topicGalleryList = new JList<>(topicGalleryModel);
         this.topicGalleryList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         this.topicGalleryList.setCellRenderer(new CourseCardRenderer());
+        this.topicGalleryList.setBackground(BACKGROUND_COLOR);
 
         this.weekPlanList = new JList<>(weekPlanModel);
         this.weekPlanList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        this.weekPlanList.setBackground(BACKGROUND_COLOR);
 
         this.selectedTopicTitle = new JLabel("No topic selected");
         this.selectedTopicTitle.setFont(selectedTopicTitle.getFont().deriveFont(Font.BOLD, 18f));
@@ -94,6 +101,7 @@ public class StudentPortalFrame extends JFrame {
         this.dashboardProgressArea.setEditable(false);
         this.dashboardProgressArea.setLineWrap(true);
         this.dashboardProgressArea.setWrapStyleWord(true);
+        this.dashboardProgressArea.setBackground(new Color(255, 255, 255));
 
         this.videoEmbedPanel = new JavaFxWebVideoPanel();
 
@@ -101,6 +109,7 @@ public class StudentPortalFrame extends JFrame {
         this.statusArea.setEditable(false);
         this.statusArea.setLineWrap(true);
         this.statusArea.setWrapStyleWord(true);
+        this.statusArea.setBackground(new Color(255, 255, 255));
 
         this.continueCourseButton = new JButton("Continue Course");
 
@@ -140,6 +149,7 @@ public class StudentPortalFrame extends JFrame {
     private JPanel buildDashboardPanel() {
         JPanel panel = new JPanel(new BorderLayout(12, 12));
         panel.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
+        panel.setBackground(BACKGROUND_COLOR);
 
         JLabel title = new JLabel("Student Progress Dashboard");
         title.setFont(title.getFont().deriveFont(Font.BOLD, 22f));
@@ -149,9 +159,11 @@ public class StudentPortalFrame extends JFrame {
         JPanel top = new JPanel(new BorderLayout(4, 4));
         top.add(title, BorderLayout.NORTH);
         top.add(subtitle, BorderLayout.CENTER);
+        top.setOpaque(false);
 
         JScrollPane progressPane = new JScrollPane(dashboardProgressArea);
         progressPane.setBorder(BorderFactory.createTitledBorder("Progress"));
+        progressPane.getViewport().setBackground(BACKGROUND_COLOR);
 
         JButton chooseTopicButton = new JButton("Choose Topic");
         JButton refreshDashboardButton = new JButton("Refresh Progress");
@@ -167,6 +179,7 @@ public class StudentPortalFrame extends JFrame {
         actions.add(chooseTopicButton);
         actions.add(refreshDashboardButton);
         actions.add(logoutButton);
+        actions.setOpaque(false);
 
         panel.add(top, BorderLayout.NORTH);
         panel.add(progressPane, BorderLayout.CENTER);
@@ -177,6 +190,7 @@ public class StudentPortalFrame extends JFrame {
     private JPanel buildTopicPickerPanel() {
         JPanel panel = new JPanel(new BorderLayout(12, 12));
         panel.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
+        panel.setBackground(BACKGROUND_COLOR);
 
         JLabel title = new JLabel("Choose A Topic");
         title.setFont(title.getFont().deriveFont(Font.BOLD, 20f));
@@ -190,9 +204,11 @@ public class StudentPortalFrame extends JFrame {
         JPanel top = new JPanel(new BorderLayout(6, 6));
         top.add(title, BorderLayout.NORTH);
         top.add(subtitle, BorderLayout.CENTER);
+        top.setOpaque(false);
 
         JScrollPane galleryPane = new JScrollPane(topicGalleryList);
         galleryPane.setBorder(BorderFactory.createTitledBorder("Topic Gallery"));
+        galleryPane.getViewport().setBackground(BACKGROUND_COLOR);
 
         JButton openTopicButton = new JButton("Save Selected Topic");
         JButton backButton = new JButton("Go Back");
@@ -209,6 +225,7 @@ public class StudentPortalFrame extends JFrame {
         actions.add(backButton);
         actions.add(refreshButton);
         actions.add(logoutButton);
+        actions.setOpaque(false);
 
         panel.add(top, BorderLayout.NORTH);
         panel.add(galleryPane, BorderLayout.CENTER);
@@ -219,6 +236,7 @@ public class StudentPortalFrame extends JFrame {
     private JPanel buildTopicDetailPanel() {
         JPanel panel = new JPanel(new BorderLayout(12, 12));
         panel.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
+        panel.setBackground(BACKGROUND_COLOR);
 
         JButton backButton = new JButton("Go Back");
         backButton.addActionListener(e -> showDashboard());
@@ -227,16 +245,20 @@ public class StudentPortalFrame extends JFrame {
         detailHeader.add(backButton, BorderLayout.WEST);
         detailHeader.add(new JLabel("Selected Topic"), BorderLayout.NORTH);
         detailHeader.add(selectedTopicTitle, BorderLayout.CENTER);
+        detailHeader.setOpaque(false);
 
         JScrollPane weekListPane = new JScrollPane(weekPlanList);
         weekListPane.setBorder(BorderFactory.createTitledBorder("Week 1 - Week 8"));
+        weekListPane.getViewport().setBackground(BACKGROUND_COLOR);
 
         JScrollPane embedPane = new JScrollPane(videoEmbedPanel);
         embedPane.setBorder(BorderFactory.createTitledBorder("Video Link"));
+        embedPane.getViewport().setBackground(BACKGROUND_COLOR);
 
         JSplitPane centerSplit = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, weekListPane, embedPane);
         centerSplit.setResizeWeight(0.25);
         centerSplit.setDividerLocation(240);
+        centerSplit.setOpaque(false);
 
         JButton playVideoButton = new JButton("Go To YouTube Video");
         JButton markWeekCompletedButton = new JButton("Mark Week As Completed");
@@ -250,13 +272,16 @@ public class StudentPortalFrame extends JFrame {
         actionPanel.add(playVideoButton);
         actionPanel.add(markWeekCompletedButton);
         actionPanel.add(takeQuizButton);
+        actionPanel.setOpaque(false);
 
         JScrollPane statusPane = new JScrollPane(statusArea);
         statusPane.setBorder(BorderFactory.createTitledBorder("Status"));
+        statusPane.getViewport().setBackground(BACKGROUND_COLOR);
 
         JPanel south = new JPanel(new BorderLayout(8, 8));
         south.add(actionPanel, BorderLayout.NORTH);
         south.add(statusPane, BorderLayout.CENTER);
+        south.setOpaque(false);
 
         panel.add(detailHeader, BorderLayout.NORTH);
         panel.add(centerSplit, BorderLayout.CENTER);

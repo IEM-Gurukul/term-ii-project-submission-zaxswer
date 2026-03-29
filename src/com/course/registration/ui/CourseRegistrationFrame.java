@@ -22,6 +22,7 @@ import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.table.DefaultTableModel;
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
@@ -30,6 +31,7 @@ import java.util.List;
 import java.util.Set;
 
 public class CourseRegistrationFrame extends JFrame {
+    private static final Color BACKGROUND_COLOR = new Color(240, 248, 255); // AliceBlue
     private final CourseRegistrationSystem system;
     private final User currentUser;
 
@@ -53,13 +55,16 @@ public class CourseRegistrationFrame extends JFrame {
 
         JPanel mainPanel = new JPanel(new BorderLayout(12, 12));
         mainPanel.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
+        mainPanel.setBackground(BACKGROUND_COLOR);
 
         JPanel headerPanel = new JPanel(new BorderLayout(10, 10));
+        headerPanel.setOpaque(false);
         JLabel userInfoLabel = new JLabel("Logged in as: " + currentUser.getUsername() + " (" + currentUser.getRole() + ")");
-        userInfoLabel.setFont(userInfoLabel.getFont().deriveFont(12f));
+        userInfoLabel.setFont(userInfoLabel.getFont().deriveFont(Font.BOLD, 14f));
         headerPanel.add(userInfoLabel, BorderLayout.WEST);
 
         JPanel topPanel = new JPanel(new GridLayout(2, 1, 8, 8));
+        topPanel.setOpaque(false);
         topPanel.add(buildSelectionPanel());
         topPanel.add(buildActionPanel());
 
@@ -83,35 +88,46 @@ public class CourseRegistrationFrame extends JFrame {
 
         JTable coursesTable = new JTable(coursesTableModel);
         coursesTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        coursesTable.setBackground(BACKGROUND_COLOR);
+        coursesTable.getTableHeader().setBackground(new Color(220, 230, 240));
 
         JTable studentsTable = new JTable(studentsTableModel);
         studentsTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        studentsTable.setBackground(BACKGROUND_COLOR);
+        studentsTable.getTableHeader().setBackground(new Color(220, 230, 240));
 
         JScrollPane coursesPane = new JScrollPane(coursesTable);
         coursesPane.setBorder(BorderFactory.createTitledBorder("Courses"));
+        coursesPane.getViewport().setBackground(BACKGROUND_COLOR);
 
         JScrollPane studentsPane = new JScrollPane(studentsTable);
         studentsPane.setBorder(BorderFactory.createTitledBorder("Students"));
+        studentsPane.getViewport().setBackground(BACKGROUND_COLOR);
 
         JSplitPane tablesSplit = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, coursesPane, studentsPane);
         tablesSplit.setResizeWeight(0.58);
+        tablesSplit.setOpaque(false);
 
         studentDetailsArea = new JTextArea(7, 30);
         studentDetailsArea.setEditable(false);
         studentDetailsArea.setLineWrap(true);
         studentDetailsArea.setWrapStyleWord(true);
         studentDetailsArea.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
+        studentDetailsArea.setBackground(new Color(255, 255, 255));
 
         statusArea = new JTextArea(7, 30);
         statusArea.setEditable(false);
         statusArea.setLineWrap(true);
         statusArea.setWrapStyleWord(true);
+        statusArea.setBackground(new Color(255, 255, 255));
 
         JPanel bottomPanel = new JPanel(new GridLayout(1, 2, 10, 10));
+        bottomPanel.setOpaque(false);
         bottomPanel.add(wrapArea(studentDetailsArea, "Selected Student Schedule"));
         bottomPanel.add(wrapArea(statusArea, "Status"));
 
         JPanel northPanel = new JPanel(new BorderLayout(10, 10));
+        northPanel.setOpaque(false);
         northPanel.add(headerPanel, BorderLayout.NORTH);
         northPanel.add(topPanel, BorderLayout.CENTER);
 
@@ -130,6 +146,7 @@ public class CourseRegistrationFrame extends JFrame {
 
     private JPanel buildSelectionPanel() {
         JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 6));
+        panel.setOpaque(false);
 
         JLabel studentLabel = new JLabel("Student:", SwingConstants.LEFT);
         JComboBox<String> studentBox = new JComboBox<>();
@@ -149,6 +166,7 @@ public class CourseRegistrationFrame extends JFrame {
 
     private JPanel buildActionPanel() {
         JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 6));
+        panel.setOpaque(false);
 
         JButton registerButton = new JButton("Register");
         JButton dropButton = new JButton("Drop");
@@ -177,6 +195,7 @@ public class CourseRegistrationFrame extends JFrame {
     private JScrollPane wrapArea(JTextArea area, String title) {
         JScrollPane pane = new JScrollPane(area);
         pane.setBorder(BorderFactory.createTitledBorder(title));
+        pane.getViewport().setBackground(BACKGROUND_COLOR);
         return pane;
     }
 

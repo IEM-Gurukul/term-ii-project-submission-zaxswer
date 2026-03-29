@@ -19,6 +19,7 @@ import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.table.DefaultTableModel;
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
@@ -26,6 +27,7 @@ import java.awt.GridLayout;
 import java.util.List;
 
 public class TeacherPortalFrame extends JFrame {
+    private static final Color BACKGROUND_COLOR = new Color(240, 248, 255); // AliceBlue
     private final CourseRegistrationSystem system;
     private final User currentUser;
     private final JComboBox<String> courseSelector;
@@ -45,11 +47,13 @@ public class TeacherPortalFrame extends JFrame {
 
         JPanel mainPanel = new JPanel(new BorderLayout(12, 12));
         mainPanel.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
+        mainPanel.setBackground(BACKGROUND_COLOR);
 
         JLabel headerLabel = new JLabel("Teacher: " + currentUser.getUsername() + " - Course Enrollment View");
-        headerLabel.setFont(headerLabel.getFont().deriveFont(14f));
+        headerLabel.setFont(headerLabel.getFont().deriveFont(Font.BOLD, 16f));
 
         JPanel selectorPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
+        selectorPanel.setOpaque(false);
         JLabel courseLabel = new JLabel("Select Course:");
         courseSelector = new JComboBox<>();
         courseSelector.setPreferredSize(new Dimension(250, 28));
@@ -77,21 +81,28 @@ public class TeacherPortalFrame extends JFrame {
 
         JTable enrollmentTable = new JTable(enrollmentTableModel);
         enrollmentTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        enrollmentTable.setBackground(BACKGROUND_COLOR);
+        enrollmentTable.getTableHeader().setBackground(new Color(220, 230, 240));
+
 
         JScrollPane tablePane = new JScrollPane(enrollmentTable);
         tablePane.setBorder(BorderFactory.createTitledBorder("Students Enrolled in Selected Course"));
+        tablePane.getViewport().setBackground(BACKGROUND_COLOR);
 
         courseDetailsArea = new JTextArea(8, 50);
         courseDetailsArea.setEditable(false);
         courseDetailsArea.setLineWrap(true);
         courseDetailsArea.setWrapStyleWord(true);
         courseDetailsArea.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
+        courseDetailsArea.setBackground(new Color(255, 255, 255));
 
         JScrollPane detailsPane = new JScrollPane(courseDetailsArea);
         detailsPane.setBorder(BorderFactory.createTitledBorder("Course Details"));
+        detailsPane.getViewport().setBackground(BACKGROUND_COLOR);
 
         JPanel southPanel = new JPanel(new GridLayout(1, 1, 10, 10));
         southPanel.add(detailsPane);
+        southPanel.setOpaque(false);
 
         mainPanel.add(headerLabel, BorderLayout.NORTH);
         mainPanel.add(selectorPanel, BorderLayout.BEFORE_FIRST_LINE);
