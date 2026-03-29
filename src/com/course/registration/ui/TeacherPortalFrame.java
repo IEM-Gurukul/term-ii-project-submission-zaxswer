@@ -157,8 +157,14 @@ public class TeacherPortalFrame extends JFrame {
         sb.append("Enrolled: ").append(course.getEnrolledCount()).append("\n");
         sb.append("Available Seats: ").append(course.getCapacity() - course.getEnrolledCount()).append("\n");
         sb.append("Prerequisites: ").append(formatPrerequisites(course.getPrerequisites())).append("\n");
-        sb.append("Required Video: ").append(course.requiresVideoWatch() ? course.getRequiredVideoUrl() : "None")
-            .append("\n");
+        if (course.requiresVideoWatch()) {
+            sb.append("Weekly Videos:\n");
+            for (int week = 1; week <= 8; week++) {
+                sb.append("  Week ").append(week).append(": ").append(course.getVideoUrlForWeek(week)).append("\n");
+            }
+        } else {
+            sb.append("Weekly Videos: None\n");
+        }
         courseDetailsArea.setText(sb.toString());
     }
 

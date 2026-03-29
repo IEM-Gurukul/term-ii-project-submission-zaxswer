@@ -23,6 +23,7 @@ import javax.swing.SwingUtilities;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.Component;
+import java.awt.Desktop;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.event.MouseAdapter;
@@ -223,13 +224,13 @@ public class StudentPortalFrame extends JFrame {
         weekListPane.setBorder(BorderFactory.createTitledBorder("Week 1 - Week 8"));
 
         JScrollPane embedPane = new JScrollPane(videoEmbedPanel);
-        embedPane.setBorder(BorderFactory.createTitledBorder("Embedded YouTube Video"));
+        embedPane.setBorder(BorderFactory.createTitledBorder("Video Link"));
 
         JSplitPane centerSplit = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, weekListPane, embedPane);
         centerSplit.setResizeWeight(0.25);
         centerSplit.setDividerLocation(240);
 
-        JButton playVideoButton = new JButton("Play Video");
+        JButton playVideoButton = new JButton("Go To YouTube Video");
         JButton enrollButton = new JButton("Enroll In Topic");
         JButton dropButton = new JButton("Drop Selected Topic");
         JButton goBackButton = new JButton("Go Back");
@@ -373,75 +374,30 @@ public class StudentPortalFrame extends JFrame {
             return;
         }
 
-        String baseUrl = system.getCourseVideoUrl(selectedTopic.getCourseId());
-        if (baseUrl == null || baseUrl.isBlank()) {
-            showVideoPlaceholder("No video configured for this topic.");
-            return;
-        }
-
-        String embedUrl = toYouTubeEmbedUrl(baseUrl);
         for (int week = 1; week <= 8; week++) {
             String weekLabel = "Week " + week;
-            String weekUrl = embedUrl + "?start=" + ((week - 1) * 300);
+            String weekUrl = system.getCourseVideoUrl(selectedTopic.getCourseId(), week);
+            if (weekUrl == null || weekUrl.isBlank()) {
+                weekUrl = system.getCourseVideoUrl(selectedTopic.getCourseId());
+            }
             weekPlanModel.addElement(weekLabel);
             selectedTopicWeekVideos.put(weekLabel, weekUrl);
+        }
+
+        boolean hasAnyVideo = selectedTopicWeekVideos.values().stream().anyMatch(url -> url != null && !url.isBlank());
+        if (!hasAnyVideo) {
+            showVideoPlaceholder("No video configured for this topic.");
+            return;
         }
 
         int currentWeek = system.getStudentCurrentWeek(studentId, selectedTopic.getCourseId());
         int initialIndex = Math.max(0, Math.min(7, currentWeek - 1));
         weekPlanList.setSelectedIndex(initialIndex);
-        showVideoPlaceholder("Week selected. Click 'Play Video' to load the embedded player.");
+        showVideoPlaceholder("Week selected. Click 'Go To YouTube Video' to open the normal YouTube link.");
     }
 
     private void showVideoPlaceholder(String message) {
         videoEmbedPanel.showPlaceholder(message);
-    }
-
-    private String toYouTubeEmbedUrl(String url) {
-        if (url == null) {
-            return null;
-        }
-        String videoId = extractYouTubeVideoId(url);
-        if (videoId == null || videoId.isBlank()) {
-            return url;
-        }
-        return "https://www.youtube.com/embed/" + videoId;
-    }
-
-    private String extractYouTubeVideoId(String url) {
-        try {
-            URI uri = URI.create(url);
-            String host = uri.getHost();
-            if (host == null) {
-                return null;
-            }
-
-            if (host.contains("youtu.be")) {
-                String path = uri.getPath();
-                if (path != null && path.length() > 1) {
-                    return path.substring(1);
-                }
-            }
-
-            String query = uri.getQuery();
-            if (query != null) {
-                String[] parts = query.split("&");
-                for (String part : parts) {
-                    String[] kv = part.split("=", 2);
-                    if (kv.length == 2 && "v".equals(kv[0])) {
-                        return kv[1];
-                    }
-                }
-            }
-
-            String path = uri.getPath();
-            if (path != null && path.startsWith("/embed/")) {
-                return path.substring("/embed/".length());
-            }
-        } catch (Exception ignored) {
-            return null;
-        }
-        return null;
     }
 
     private void refreshTopicDetail() {
@@ -479,12 +435,16 @@ public class StudentPortalFrame extends JFrame {
             return;
         }
 
-        String html = "<html><body style='font-family:sans-serif; margin:10px;'>"
-                + "<h3>" + selectedWeek + "</h3>"
-                + "<iframe width='760' height='430' src='" + videoUrl
-                + "' title='YouTube video player' frameborder='0' allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share' allowfullscreen></iframe>"
-                + "</body></html>";
-        videoEmbedPanel.loadHtml(html);
+        try {
+            if (!Desktop.isDesktopSupported()) {
+                appendStatus("Desktop browsing is not supported on this system.");
+                return;
+            }
+            Desktop.getDesktop().browse(URI.create(videoUrl));
+        } catch (Exception ex) {
+            appendStatus("Unable to open video link in browser.");
+            return;
+        }
 
         int weekNumber = parseWeekNumber(selectedWeek);
         RegistrationResult watchResult = system.markCourseVideoWatched(studentId, selectedTopic.getCourseId());

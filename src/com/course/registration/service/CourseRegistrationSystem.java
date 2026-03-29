@@ -125,6 +125,14 @@ public class CourseRegistrationSystem {
         return course.getRequiredVideoUrl();
     }
 
+    public String getCourseVideoUrl(String courseId, int weekNumber) {
+        Course course = courses.get(courseId);
+        if (course == null) {
+            return null;
+        }
+        return course.getVideoUrlForWeek(weekNumber);
+    }
+
     public RegistrationResult selectTopic(String studentId, String courseId) {
         Student student = students.get(studentId);
         if (student == null) {
