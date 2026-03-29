@@ -67,7 +67,7 @@ public class TeacherPortalFrame extends JFrame {
         selectorPanel.add(logoutButton);
 
         enrollmentTableModel = new DefaultTableModel(new Object[]{
-                "Student ID", "Student Name", "Max Load", "Current Load"
+                "Student ID", "Student Name"
         }, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -137,13 +137,14 @@ public class TeacherPortalFrame extends JFrame {
 
         displayCourseDetails(course);
 
-        for (Student student : system.getAllStudents()) {
-            if (student.isAlreadyEnrolled(courseId)) {
+        List<Student> enrolledStudents = system.getStudentsEnrolledInCourse(courseId);
+        if (enrolledStudents.isEmpty()) {
+            courseDetailsArea.append("\nNo students are currently enrolled in this course.\n");
+        } else {
+            for (Student student : enrolledStudents) {
                 enrollmentTableModel.addRow(new Object[]{
                         student.getStudentId(),
-                        student.getName(),
-                        student.getMaxConcurrentCourses(),
-                        student.getCurrentCourses().size()
+                        student.getName()
                 });
             }
         }

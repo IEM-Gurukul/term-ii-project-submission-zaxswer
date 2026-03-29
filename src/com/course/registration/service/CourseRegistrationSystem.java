@@ -48,6 +48,16 @@ public class CourseRegistrationSystem {
         return list;
     }
 
+    public List<Student> getStudentsEnrolledInCourse(String courseId) {
+        List<Student> enrolledStudents = new ArrayList<>();
+        for (Student student : students.values()) {
+            if (student.isAlreadyEnrolled(courseId)) {
+                enrolledStudents.add(student);
+            }
+        }
+        return enrolledStudents;
+    }
+
     public RegistrationResult registerStudentForCourse(String studentId, String courseId) {
         Student student = students.get(studentId);
         if (student == null) {
@@ -60,11 +70,8 @@ public class CourseRegistrationSystem {
         }
 
         if (student.isAlreadyEnrolled(courseId)) {
-            return RegistrationResult.failure("Student is already enrolled in " + courseId);
-        }
-
-        if (course.requiresVideoWatch() && !videoProgressTracker.hasWatched(studentId, courseId)) {
-            return RegistrationResult.failure("Watch the required course video before enrolling in " + courseId + ".");
+            // Silently ignore if already enrolled, as this is now an automatic process
+            return RegistrationResult.success("Student already enrolled.");
         }
 
         if (!student.canTakeMoreCourses()) {

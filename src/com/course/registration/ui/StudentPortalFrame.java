@@ -467,6 +467,12 @@ public class StudentPortalFrame extends JFrame {
 
         if (watchResult.isSuccess() && progressResult.isSuccess()) {
             appendStatus("Week " + weekNumber + " is completed.");
+
+            Student student = system.getStudent(studentId);
+            if (student != null && !student.isAlreadyEnrolled(selectedTopic.getCourseId())) {
+                RegistrationResult enrollmentResult = system.registerStudentForCourse(studentId, selectedTopic.getCourseId());
+                appendStatus(enrollmentResult.getMessage());
+            }
         } else {
             appendStatus(watchResult.getMessage());
             appendStatus(progressResult.getMessage());
